@@ -390,7 +390,11 @@
                         let pisSab = (getVal(row, ['Piscina']) || "").trim();
                         let camSab = (getVal(row, ['Camaronera']) || "").trim();
                         
-                        let fechaRaw = getVal(row, ['Fecha llegada a planta']);
+                        let fechaRaw = getVal(row, [
+                            'Fecha llegada a planta',
+                            'Fecha de llegada',
+                            'Fecha llegada'
+                        ]);
                         let parsedF = parseFechaLlegada(fechaRaw);
                         l.Fecha_ISO = parsedF.iso;
                         l.Fecha_Display = parsedF.display;
