@@ -228,25 +228,33 @@
 
 function resolveCamaronera(camSab, pisSab, camOmi, pisOmi) {
     let finalPis = (pisSab || pisOmi || "").toString().trim().toUpperCase();
-    let rawCam = (camSab && !camSab.toUpperCase().includes("OPERADORA Y PROCESADORA")) 
-                 ? camSab.trim() 
-                 : (camOmi || camSab || "Desconocida").trim();
-    
-    let camUpper = rawCam.toUpperCase();
-    let esOmarsaGenerico = camUpper.includes("OPERADORA Y PROCESADORA DE PRODUCTOS MARINOS") || camUpper.includes("OMARSA S.A.");
-    let esCamaroneraPuna = camUpper.includes("CAMARONERA PUNA") || camUpper === "PUNA";
+    let genericName = "OPERADORA Y PROCESADORA DE PRODUCTOS MARINOS";
 
-    // Extraer solo los dígitos de la piscina para evaluar centenas (ej. "PD305" -> 305, "954" -> 954)
-    let numMatch = finalPis.match(/\d+/);
-    let pisNum = numMatch ? parseInt(numMatch[0], 10) : NaN;
-
-    // 1. REGLA PUNA 2: Prefijo PD (ej. PD100-199, PD300-399 o cualquier PD)
-    if (finalPis.startsWith("PD")) {
-        return "Puna 2";
+    // 1. Obtener el nombre real directamente de la columna Camaronera
+    let finalCam = "Desconocida";
+    if (camSab && camSab.trim() !== "" && !camSab.toUpperCase().includes(genericName)) {
+        finalCam = camSab.trim();
+    } else if (camOmi && camOmi.trim() !== "" && !camOmi.toUpperCase().includes(genericName)) {
+        finalCam = camOmi.trim();
+    } else if (camSab && camSab.trim() !== "") {
+        finalCam = camSab.trim();
+    } else if (camOmi && camOmi.trim() !== "") {
+        finalCam = camOmi.trim();
     }
 
-    // 2. REGLA PUNA: Nombre "Camaronera Puna" (o razón social Omarsa) con piscinas en centenas 200, 800 o 900
-    if (esCamaroneraPuna || esOmarsaGenerico) {
+    let camUpper = finalCam.toUpperCase();
+
+    // 2. Activar reglas de piscina ÚNICAMENTE si la camaronera es "Camaronera Puna"
+    if (camUpper === "CAMARONERA PUNA" || camUpper.includes("CAMARONERA PUNA")) {
+        // Si comienza con prefijo PD (ej. PD100, PD305, etc.) -> Puna 2
+        if (finalPis.startsWith("PD")) {
+            return "Puna 2";
+        }
+
+        // Extraer el número de la piscina para evaluar centenas 200, 800 y 900 -> Puna
+        let numMatch = finalPis.match(/\d+/);
+        let pisNum = numMatch ? parseInt(numMatch[0], 10) : NaN;
+
         if (!isNaN(pisNum) && (
             (pisNum >= 200 && pisNum <= 299) ||
             (pisNum >= 800 && pisNum <= 899) ||
@@ -254,32 +262,13 @@ function resolveCamaronera(camSab, pisSab, camOmi, pisOmi) {
         )) {
             return "Puna";
         }
-        // Si explícitamente dice "Camaronera Puna" aunque tenga otro número sin PD, unificar como "Puna"
-        if (esCamaroneraPuna) {
-            return "Puna";
-        }
+
+        // Si dice Camaronera Puna pero tiene otro número sin PD, se mantiene como Puna
+        return "Puna";
     }
 
-    // 3. MAPEO DE PISCINAS ESPECÍFICAS Y PREFIJOS CONOCIDOS
-    const mapeoPiscinaCamaronera = {
-        "P1010": "Puerto Inca 1",
-        "P1014": "Puerto Inca 1",
-        "75":    "Camaronera Cachugran",
-        "421":   "Camaronera Chongon"
-    };
-
-    if (mapeoPiscinaCamaronera[finalPis]) return mapeoPiscinaCamaronera[finalPis];
-    if (finalPis.startsWith("PU") && finalPis.length >= 3) return "Puerto Inca " + finalPis.charAt(2);
-    if (finalPis.startsWith("PT")) return "Taura";
-    if (finalPis.startsWith("CA")) return "Camaronera Cachugran";
-
-    // 4. RESPALDO PARA OMARSA GENÉRICO NO IDENTIFICADO
-    if (esOmarsaGenerico) {
-        if (finalPis) return "Omarsa - Piscina " + finalPis;
-        return "Omarsa (Genérico)";
-    }
-
-    return rawCam;
+    // 3. Caso contrario: se mantiene intacto el nombre que viene en la columna Camaronera
+    return finalCam;
 }
 
         document.getElementById('fileInput').addEventListener('change', function(e) {
