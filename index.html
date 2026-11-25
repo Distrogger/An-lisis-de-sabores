@@ -226,22 +226,45 @@
             return undefined;
         }
 
+function normalizeCamaroneraName(name) {
+    if (!name) return "Desconocida";
+    // Eliminar puntos, comas y espacios múltiples, y pasar a mayúsculas para comparar
+    let clean = name.replace(/[.,]/g, '').replace(/\s+/g, ' ').trim();
+    let upper = clean.toUpperCase();
+
+    // Unificar casos específicos detectados
+    if (upper.startsWith("OPERADORA Y PROCESADORA DE PRODUCTOS MARINOS")) {
+        return "OPERADORA Y PROCESADORA DE PRODUCTOS MARINOS OMARSA S.A.";
+    }
+    if (upper === "CAMARONERA SUPRACAMARON ECUADOR ECUASUPRA SA") {
+        return "CAMARONERA SUPRACAMARON ECUADOR ECUASUPRA S.A.";
+    }
+    if (upper === "PESQUERA MARYCIELO CIA LTDA") {
+        return "PESQUERA MARYCIELO CIA. LTDA.";
+    }
+
+    // Para cualquier otro proveedor, devolver sin puntos ni espacios extra para evitar futuros duplicados
+    return clean;
+}
+
 function resolveCamaronera(camSab, pisSab, camOmi, pisOmi) {
     let finalPis = (pisSab || pisOmi || "").toString().trim().toUpperCase();
     let genericName = "OPERADORA Y PROCESADORA DE PRODUCTOS MARINOS";
 
     // 1. Obtener el nombre real directamente de la columna Camaronera
-    let finalCam = "Desconocida";
+    let rawCam = "Desconocida";
     if (camSab && camSab.trim() !== "" && !camSab.toUpperCase().includes(genericName)) {
-        finalCam = camSab.trim();
+        rawCam = camSab.trim();
     } else if (camOmi && camOmi.trim() !== "" && !camOmi.toUpperCase().includes(genericName)) {
-        finalCam = camOmi.trim();
+        rawCam = camOmi.trim();
     } else if (camSab && camSab.trim() !== "") {
-        finalCam = camSab.trim();
+        rawCam = camSab.trim();
     } else if (camOmi && camOmi.trim() !== "") {
-        finalCam = camOmi.trim();
+        rawCam = camOmi.trim();
     }
 
+    // Normalizar puntuación y alias antes de evaluar reglas
+    let finalCam = normalizeCamaroneraName(rawCam);
     let camUpper = finalCam.toUpperCase();
 
     // 2. Activar reglas de piscina ÚNICAMENTE si la camaronera es "Camaronera Puna"
@@ -274,7 +297,7 @@ function resolveCamaronera(camSab, pisSab, camOmi, pisOmi) {
         return "Puna";
     }
 
-    // 3. Caso contrario: se mantiene intacto el nombre que viene en la columna Camaronera
+    // 3. Caso contrario: devolver el nombre normalizado sin duplicados
     return finalCam;
 }
         document.getElementById('fileInput').addEventListener('change', function(e) {
