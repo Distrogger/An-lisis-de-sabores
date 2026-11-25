@@ -246,12 +246,20 @@ function resolveCamaronera(camSab, pisSab, camOmi, pisOmi) {
 
     // 2. Activar reglas de piscina ÚNICAMENTE si la camaronera es "Camaronera Puna"
     if (camUpper === "CAMARONERA PUNA" || camUpper.includes("CAMARONERA PUNA")) {
-        // Si comienza con prefijo PD (ej. PD100, PD305, etc.) -> Puna 2
+        // Regla Puerto Inca (PU1 -> Puerto Inca 1, PU2 -> Puerto Inca 2, PU3 -> Puerto Inca 3, PU4 -> Puerto Inca 4)
+        if (finalPis.startsWith("PU") && finalPis.length >= 3) {
+            let numInca = finalPis.charAt(2);
+            if (["1", "2", "3", "4"].includes(numInca)) {
+                return "Puerto Inca " + numInca;
+            }
+        }
+
+        // Regla Puna 2: Prefijo PD (ej. PD100, PD305, etc.)
         if (finalPis.startsWith("PD")) {
             return "Puna 2";
         }
 
-        // Extraer el número de la piscina para evaluar centenas 200, 800 y 900 -> Puna
+        // Regla Puna: Centenas 200, 800 y 900 (o cualquier otra piscina sin PU/PD bajo Camaronera Puna)
         let numMatch = finalPis.match(/\d+/);
         let pisNum = numMatch ? parseInt(numMatch[0], 10) : NaN;
 
@@ -263,7 +271,6 @@ function resolveCamaronera(camSab, pisSab, camOmi, pisOmi) {
             return "Puna";
         }
 
-        // Si dice Camaronera Puna pero tiene otro número sin PD, se mantiene como Puna
         return "Puna";
     }
 
