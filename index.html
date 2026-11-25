@@ -226,43 +226,61 @@
             return undefined;
         }
 
-        function resolveCamaronera(camSab, pisSab, camOmi, pisOmi) {
-            let finalPis = (pisSab || pisOmi || "").toString().trim().toUpperCase();
-            let genericName = "OPERADORA Y PROCESADORA DE PRODUCTOS MARINOS";
-            
-            const mapeoPiscinaCamaronera = {
-                "P1010": "Puerto Inca 1",
-                "932": "Camaronera Puna",
-                "293": "Camaronera Puna",
-                "897": "Camaronera Puna",
-                "75":  "Camaronera Cachugran",
-                "421": "Camaronera Chongon",
-                "845": "Camaronera Puna",
-                "868": "Camaronera Puna",
-                "848": "Camaronera Puna"
-            };
+function resolveCamaronera(camSab, pisSab, camOmi, pisOmi) {
+    let finalPis = (pisSab || pisOmi || "").toString().trim().toUpperCase();
+    let rawCam = (camSab && !camSab.toUpperCase().includes("OPERADORA Y PROCESADORA")) 
+                 ? camSab.trim() 
+                 : (camOmi || camSab || "Desconocida").trim();
+    
+    let camUpper = rawCam.toUpperCase();
+    let esOmarsaGenerico = camUpper.includes("OPERADORA Y PROCESADORA DE PRODUCTOS MARINOS") || camUpper.includes("OMARSA S.A.");
+    let esCamaroneraPuna = camUpper.includes("CAMARONERA PUNA") || camUpper === "PUNA";
 
-            if (mapeoPiscinaCamaronera[finalPis]) return mapeoPiscinaCamaronera[finalPis];
-            if (finalPis.startsWith("PU") && finalPis.length >= 3) return "Puerto Inca " + finalPis.charAt(2);
-            if (finalPis.startsWith("PD")) return "Puna 2";
-            if (finalPis.startsWith("PT")) return "Taura";
+    // Extraer solo los dígitos de la piscina para evaluar centenas (ej. "PD305" -> 305, "954" -> 954)
+    let numMatch = finalPis.match(/\d+/);
+    let pisNum = numMatch ? parseInt(numMatch[0], 10) : NaN;
 
-            let finalCam = camOmi || "Desconocida";
-            if (camSab && !camSab.toUpperCase().includes(genericName)) {
-                finalCam = camSab;
-            } else if (camOmi && !camOmi.toUpperCase().includes(genericName) && (!camSab || camSab.toUpperCase().includes(genericName))) {
-                finalCam = camOmi;
-            } else if (camSab) {
-                finalCam = camSab;
-            }
+    // 1. REGLA PUNA 2: Prefijo PD (ej. PD100-199, PD300-399 o cualquier PD)
+    if (finalPis.startsWith("PD")) {
+        return "Puna 2";
+    }
 
-            if (finalCam.toUpperCase().includes(genericName) || finalCam.toUpperCase().includes("OMARSA S.A.")) {
-                 if(finalPis) return "Omarsa - Piscina " + finalPis;
-                 return "Omarsa (Genérico)";
-            }
-
-            return finalCam;
+    // 2. REGLA PUNA: Nombre "Camaronera Puna" (o razón social Omarsa) con piscinas en centenas 200, 800 o 900
+    if (esCamaroneraPuna || esOmarsaGenerico) {
+        if (!isNaN(pisNum) && (
+            (pisNum >= 200 && pisNum <= 299) ||
+            (pisNum >= 800 && pisNum <= 899) ||
+            (pisNum >= 900 && pisNum <= 999)
+        )) {
+            return "Puna";
         }
+        // Si explícitamente dice "Camaronera Puna" aunque tenga otro número sin PD, unificar como "Puna"
+        if (esCamaroneraPuna) {
+            return "Puna";
+        }
+    }
+
+    // 3. MAPEO DE PISCINAS ESPECÍFICAS Y PREFIJOS CONOCIDOS
+    const mapeoPiscinaCamaronera = {
+        "P1010": "Puerto Inca 1",
+        "P1014": "Puerto Inca 1",
+        "75":    "Camaronera Cachugran",
+        "421":   "Camaronera Chongon"
+    };
+
+    if (mapeoPiscinaCamaronera[finalPis]) return mapeoPiscinaCamaronera[finalPis];
+    if (finalPis.startsWith("PU") && finalPis.length >= 3) return "Puerto Inca " + finalPis.charAt(2);
+    if (finalPis.startsWith("PT")) return "Taura";
+    if (finalPis.startsWith("CA")) return "Camaronera Cachugran";
+
+    // 4. RESPALDO PARA OMARSA GENÉRICO NO IDENTIFICADO
+    if (esOmarsaGenerico) {
+        if (finalPis) return "Omarsa - Piscina " + finalPis;
+        return "Omarsa (Genérico)";
+    }
+
+    return rawCam;
+}
 
         document.getElementById('fileInput').addEventListener('change', function(e) {
             let files = e.target.files;
